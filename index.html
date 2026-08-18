@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Production Speedrun Dashboard</title>
+  <style>
+    :root {
+      --bg-color: #121214;
+      --card-bg: #1e1e24;
+      --accent-color: #00e676;
+      --accent-warn: #ff9100;
+      --accent-danger: #ff5252;
+      --text-main: #f0f0f5;
+      --text-muted: #a0a0b0;
+      --border-color: #2a2a35;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 650px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    h1, h2, h3 {
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    /* Timer Styles */
+    .timer-display {
+      font-size: 4rem;
+      font-weight: 700;
+      text-align: center;
+      font-family: monospace;
+      letter-spacing: 2px;
+      margin: 10px 0;
+      color: var(--accent-color);
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background-color: #2c2c38;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #3a3a4a;
+      border-color: #4a4a5a;
+    }
+
+    button.primary {
+      background-color: var(--accent-color);
+      color: #000;
+      border: none;
+    }
+
+    button.primary:hover {
+      background-color: #00c853;
+    }
+
+    /* Manual Override Section */
+    .manual-override-box {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .manual-override-box label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      width: 100%;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    input[type="number"] {
+      background-color: #121214;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 1rem;
+      font-family: monospace;
+    }
+
+    input[type="number"]:focus {
+      outline: 1px solid var(--accent-color);
+    }
+
+    /* Generator Section */
+    .generator-results {
+      background: #121214;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    .generator-item {
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+
+    .generator-item span {
+      color: var(--text-muted);
+    }
+
+    /* Piano Visualizer */
+    .piano-container {
+      display: flex;
+      justify-content: center;
+      position: relative;
+      height: 120px;
+      margin-top: 15px;
+      background: #000;
+      padding: 5px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+
+    .white-key {
+      width: 32px;
+      height: 100%;
+      background: #e0e0e0;
+      border: 1px solid #121214;
+      border-radius: 0 0 4px 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .black-key {
+      width: 20px;
+      height: 60%;
+      background: #222;
+      border-radius: 0 0 3px 3px;
+      position: absolute;
+      z-index: 2;
+    }
+
+    .key-active {
+      background: var(--accent-color) !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- TIMER CARD -->
+    <div class="card">
+      <h2>Speedrun Timer</h2>
+      <div class="timer-display" id="timerDisplay">60:00</div>
+      
+      <div class="controls-row">
+        <button id="startPauseBtn" class="primary">Start</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+
+      <!-- MANUAL OVERRIDE CONTROLS -->
+      <div class="manual-override-box">
+        <label for="manualMins">Accidentally reset? Manually jump back to time:</label>
+        <input type="number" id="manualMins" placeholder="MM" min="0" max="999" style="width: 65px;">
+        <span>:</span>
+        <input type="number" id="manualSecs" placeholder="SS" min="0" max="59" style="width: 65px;">
+        <button id="setManualTimeBtn">Set Time</button>
+      </div>
+    </div>
+
+    <!-- CHALLENGE / THEME GENERATOR CARD -->
+    <div class="card">
+      <h2>Prompt Generator</h2>
+      <div class="generator-results">
+        <div class="generator-item"><span>Genre:</span> <strong id="genGenre">--</strong></div>
+        <div class="generator-item"><span>BPM:</span> <strong id="genBpm">--</strong></div>
+        <div class="generator-item"><span>Key / Scale:</span> <strong id="genKey">--</strong></div>
+      </div>
+      <button id="generateBtn" style="width: 100%;">Generate Random Prompt</button>
+
+      <!-- PIANO VISUALIZER -->
+      <div class="piano-container" id="pianoContainer"></div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- TIMER STATE & LOGIC ---
+    const DEFAULT_TIME = 60 * 60; // 60 minutes in seconds
+    let remainingSeconds = DEFAULT_TIME;
+    let isRunning = false;
+    let timerInterval = null;
+    let targetEndTime = null;
+
+    // DOM Elements
+    const timerDisplay = document.getElementById('timerDisplay');
+    const startPauseBtn = document.getElementById('startPauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const manualMins = document.getElementById('manualMins');
+    const manualSecs = document.getElementById('manualSecs');
+    const setManualTimeBtn = document.getElementById('setManualTimeBtn');
+
+    function renderDisplay() {
+      const mins = Math.floor(remainingSeconds / 60);
+      const secs = remainingSeconds % 60;
+      timerDisplay.textContent = 
+        `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function startTimer() {
+      if (isRunning) return;
+      isRunning = true;
+      startPauseBtn.textContent = 'Pause';
+      targetEndTime = Date.now() + (remainingSeconds * 1000);
+
+      timerInterval = setInterval(() => {
+        const now = Date.now();
+        const diff = Math.round((targetEndTime - now) / 1000);
+        
+        if (diff <= 0) {
+          remainingSeconds = 0;
+          pauseTimer();
+        } else {
+          remainingSeconds = diff;
+        }
+        renderDisplay();
+        saveState();
+      }, 250);
+    }
+
+    function pauseTimer() {
+      isRunning = false;
+      startPauseBtn.textContent = 'Start';
+      clearInterval(timerInterval);
+      saveState();
+    }
+
+    startPauseBtn.addEventListener('click', () => {
+      if (isRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      pauseTimer();
+      remainingSeconds = DEFAULT_TIME;
+      renderDisplay();
+      saveState();
+    });
+
+    // --- MANUAL TIME OVERRIDE LOGIC ---
+    setManualTimeBtn.addEventListener('click', () => {
+      const mins = parseInt(manualMins.value, 10) || 0;
+      const secs = parseInt(manualSecs.value, 10) || 0;
+
+      const validSecs = Math.min(Math.max(secs, 0), 59);
+      const totalSecs = (mins * 60) + validSecs;
+
+      if (totalSecs >= 0) {
+        remainingSeconds = totalSecs;
+
+        // Recalculate background sync target if currently running
+        if (isRunning) {
+          targetEndTime = Date.now() + (remainingSeconds * 1000);
+        }
+
+        renderDisplay();
+        saveState();
+
+        manualMins.value = '';
+        manualSecs.value = '';
+      }
+    });
+
+    // --- LOCAL STORAGE PERSISTENCE ---
+    function saveState() {
+      localStorage.setItem('speedrun_timer_state', JSON.stringify({
+        remainingSeconds,
+        isRunning,
+        targetEndTime
+      }));
+    }
+
+    function loadState() {
+      const saved = localStorage.getItem('speedrun_timer_state');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.isRunning && data.targetEndTime) {
+            const diff = Math.round((data.targetEndTime - Date.now()) / 1000);
+            if (diff > 0) {
+              remainingSeconds = diff;
+              startTimer();
+              return;
+            }
+          }
+          remainingSeconds = data.remainingSeconds || DEFAULT_TIME;
+        } catch (e) {
+          remainingSeconds = DEFAULT_TIME;
+        }
+      }
+      renderDisplay();
+    }
+
+    // --- GENERATOR & PIANO VISUALIZER ---
+    const genres = ["Synthwave", "Lofi Hip Hop", "Drum & Bass", "Cyberpunk", "House", "Ambient"];
+    const keys = ["C Minor", "A Minor", "F# Minor", "G Major", "D Minor", "E Minor"];
+
+    document.getElementById('generateBtn').addEventListener('click', () => {
+      const genre = genres[Math.floor(Math.random() * genres.length)];
+      const bpm = Math.floor(Math.random() * (170 - 80 + 1)) + 80;
+      const key = keys[Math.floor(Math.random() * keys.length)];
+
+      document.getElementById('genGenre').textContent = genre;
+      document.getElementById('genBpm').textContent = `${bpm} BPM`;
+      document.getElementById('genKey').textContent = key;
+    });
+
+    function initPiano() {
+      const piano = document.getElementById('pianoContainer');
+      piano.innerHTML = '';
+      const totalKeys = 14; 
+
+      for (let i = 0; i < totalKeys; i++) {
+        const key = document.createElement('div');
+        key.className = 'white-key';
+        piano.appendChild(key);
+
+        // Add black key offset pattern (skip between E-F and B-C)
+        if ([0, 1, 3, 4, 5, 7, 8, 10, 11, 12].includes(i)) {
+          const blackKey = document.createElement('div');
+          blackKey.className = 'black-key';
+          blackKey.style.left = `${(i + 1) * 32 - 10}px`;
+          piano.appendChild(blackKey);
+        }
+      }
+    }
+
+    // Initialize on load
+    initPiano();
+    loadState();
+  </script>
+</body>
+</html>
